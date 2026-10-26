@@ -18,7 +18,7 @@ def tokens(text: str) -> list[str]:
 
 class SearchEngine:
     def __init__(self, chunks: list[dict], vectors: np.ndarray, embedder: object, reranker: object,
-                 candidates: int = 20, rrf_k: int = 60):
+                 candidates: int = 20, rrf_k: int = 60, inference_lock: threading.RLock | None = None):
         if len(chunks) != len(vectors):
             raise ValueError("Chunk and vector counts differ")
         self.chunks = chunks
@@ -27,7 +27,30 @@ class SearchEngine:
         self.reranker = reranker
         self.candidates = candidates
         self.rrf_k = rrf_k
-        self._inference_lock = threading.RLock()
+        self._inference_lock = inference_lock or threading.RLock()
+
+    def embed_passages(self, passages: list[str]) -> np.ndarray:
+        """Embed an upload with the same pinned model used for the bundled index."""
+        if not passages:
+            raise ValueError("No passages to embed")
+        with self._inference_lock:
+            vectors = np.asarray(list(self.embedder.passage_embed(passages)), dtype=np.float32)
+        if vectors.ndim != 2 or vectors.shape[0] != len(passages) or vectors.shape[1] != self.vectors.shape[1]:
+            raise ValueError("Uploaded embedding dimensions do not match the index")
+        norms = np.linalg.norm(vectors, axis=1, keepdims=True)
+        vectors = vectors / np.maximum(norms, 1e-12)
+        if not np.isfinite(vectors).all():
+            raise ValueError("Uploaded embeddings contain invalid values")
+        return vectors
+
+    def with_upload(self, chunks: list[dict], vectors: np.ndarray, include_base: bool = True) -> SearchEngine:
+        """Create a per-session search view; never change the cached shared index."""
+        if len(chunks) != len(vectors) or vectors.ndim != 2 or vectors.shape[1] != self.vectors.shape[1]:
+            raise ValueError("Uploaded chunks and vectors do not match")
+        merged_chunks = self.chunks + chunks if include_base else chunks
+        merged_vectors = np.vstack((self.vectors, vectors)) if include_base else vectors
+        return SearchEngine(merged_chunks, merged_vectors, self.embedder, self.reranker,
+                            self.candidates, self.rrf_k, self._inference_lock)
 
     def search(self, question: str, principal: str, mode: str = "reranked", limit: int = 10) -> list[dict]:
         if principal not in USERS:

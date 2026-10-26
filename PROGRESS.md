@@ -9,9 +9,9 @@ This file is the handoff point for later sessions. Read `GroundedDocs.md` first,
 - [x] Phase 2, step 3: deterministic ingestion and committed vector index.
 - [x] Phase 2, step 4: authentication, access filtering, four search modes.
 - [x] Phase 2, step 5: extractive answers, abstention, exact citations.
-- [x] Phase 3, step 6: Streamlit demo, login/question/PDF citation/logout smoke check.
+- [x] Phase 3, step 6: Streamlit demo, login/question/PDF citation/logout smoke check, and session-only document upload.
 - [x] Phase 3, step 7: reproducible benchmark and 30 manual citation judgments.
-- [x] Phase 3, step 8: 15 tests, README, final local server health check.
+- [x] Phase 3, step 8: 24 tests, README, final local server health check.
 - [x] GitHub: publish standalone public repository and verify it.
 - [ ] Streamlit deployment: deferred by the user until they test and understand the project.
 
@@ -20,10 +20,10 @@ This file is the handoff point for later sessions. Read `GroundedDocs.md` first,
 - Date: 2026-10-26 (Asia/Calcutta).
 - State: Local project complete and public on GitHub. Streamlit deployment is deferred by the user.
 - Environment: Python 3.11.15 in `.python/`, virtual environment in `.venv/`, Linux-compatible pinned `requirements.txt`. Local model files are in ignored `.model-cache/`.
-- Verification completed: 30 documents, 60 labels, 59 chunks including a PDF page; deterministic repeated index build; four search modes; development-only threshold; 15 tests passed; dependency check passed; AppTest login, question, page citation and logout; local Streamlit health endpoint returned HTTP 200. Final held-out reranked metrics: recall@5 1.000, p95 455.2 ms, 30/30 supported citations, and negative abstention 0.800. These figures apply only to the synthetic corpus and measured machine.
-- Local Git checkpoint: `245e377` (`Build GroundedDocs local demo and benchmark`); working tree was clean after the commit.
+- Verification completed: 30 bundled documents, 60 labels, 59 bundled chunks including a PDF page; deterministic repeated index build; four search modes; development-only threshold; 24 tests passed; dependency check passed; AppTest login, upload, search, page citation, logout, and account isolation; local Streamlit health endpoint returned HTTP 200. The upload tests cover TXT and PDF parsing, limits, and per-session search isolation. Final held-out **bundled-corpus** reranked metrics: recall@5 1.000, p95 455.2 ms, 30/30 supported citations, and negative abstention 0.800. These figures do not measure uploads and apply only to the synthetic corpus and measured machine.
+- Local Git checkpoint: run `git log -1 --oneline` for the latest commit; the branch tracks `origin/main`.
 - GitHub source: https://github.com/saidarshan20/GroundedDocs (`main`). The user created the empty public repository and the local committed tree was pushed successfully.
-- Next: let the user test and study the local code. Deploy `streamlit_app.py` on Streamlit Community Cloud only after they ask to resume deployment; then verify the live URL and add it and screenshots to `README.md`.
+- Next: have the user test the uploader locally with `assets/upload_example.txt` and their own text-based documents. Deploy `streamlit_app.py` on Streamlit Community Cloud only after they ask to resume deployment; then verify the live URL and add it and screenshots to `README.md`.
 - Open items: Streamlit deployment and actual signed-in portfolio screenshots. Local synthetic password hashes are in ignored `.streamlit/secrets.toml`; published demo passwords are in `scripts/setup_demo_secrets.py`. The computer-use skill forbids automating login dialogs, so signed-in screenshot capture needs a manual capture or another authorized, supported method.
 
 ## GitHub-only publication handoff

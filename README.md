@@ -1,6 +1,6 @@
 # GroundedDocs
 
-GroundedDocs answers questions from a small document library and shows the exact evidence it used. It compares BM25 keyword search, dense vector search, rank-fused hybrid search, and cross-encoder reranking. Each signed-in demo account can retrieve only its permitted documents.
+GroundedDocs answers questions from a small document library or a document you upload for the current session, and shows the exact evidence it used. It compares BM25 keyword search, dense vector search, rank-fused hybrid search, and cross-encoder reranking. Each signed-in demo account can retrieve only its permitted bundled documents; uploads are isolated to the current app session.
 
 **Status:** locally built, benchmarked, and [published on GitHub](https://github.com/saidarshan20/GroundedDocs). Streamlit deployment is intentionally deferred while the project owner tests and studies the code. A live URL and screenshots can be added later. The [build guide](GroundedDocs.md) explains the full design; [PROGRESS.md](PROGRESS.md) records the current handoff point.
 
@@ -25,6 +25,10 @@ On macOS/Linux, replace the first two Python paths with `python3.11 -m venv .ven
 
 These credentials and documents are intentionally public. They demonstrate server-side filtering; they do **not** secure confidential material. Try “When is Alice's prototype review?” as Alice, then Bob to see the access difference. Try “How many pages may a guest print per visit?” for a PDF page citation.
 
+### Test your own document
+
+After signing in, choose a text-based `.pdf`, `.md`, or `.txt` file under 5 MB and click **Use this document**. The default **Search scope** is **Uploaded document only**; switch to **Uploaded document + sample library** if you want both. Try the safe [example file](assets/upload_example.txt) and ask “When does the violet ferry leave Harbor Nine?” The answer should say **6:40 a.m. every Tuesday** and cite `upload_example.txt`. Click **Clear uploaded document** or log out to remove it from search. Only one upload is active at a time, and files over 120 passages, scanned PDFs, encrypted PDFs, and non-UTF-8 text are rejected. The file is processed in server memory for this app session, never written into the repository or the benchmark.
+
 ## How it works
 
 ```mermaid
@@ -42,11 +46,11 @@ flowchart LR
     E --> C[Answer and exact citation]
 ```
 
-The index holds 59 passages from 30 original fictional documents: 12 shared, 9 Alice-only, and 9 Bob-only. Access grants are in `corpus/manifest.jsonl`; search filters by principal before scoring or displaying any result. The answer is a verbatim source sentence, never generated prose. A development-only reranker threshold controls abstention. Rebuild the index after any corpus, grant, chunking, or embedding-model change.
+The committed index holds 59 passages from 30 original fictional documents: 12 shared, 9 Alice-only, and 9 Bob-only. Access grants are in `corpus/manifest.jsonl`; search filters by principal before scoring or displaying any result. An uploaded document is chunked and embedded with the same pinned model, then kept only in that browser session's app memory. The answer is a verbatim source sentence, never generated prose. A development-only reranker threshold controls abstention. Rebuild the committed index after any bundled corpus, grant, chunking, or embedding-model change.
 
 ## Measured results
 
-The question set has 60 authored labels: 10 answerable and 5 negative development questions, plus 30 answerable and 15 negative held-out questions. The table below uses only the held-out set. Recall counts a question once if a relevant **document** appears in the top k chunks. Timings include retrieval and answer selection over three warm passes, excluding model loading and index construction. p95 uses the nearest-rank method.
+The question set has 60 authored labels: 10 answerable and 5 negative development questions, plus 30 answerable and 15 negative held-out questions. The table below uses only the held-out bundled corpus; it does not measure uploaded files. Recall counts a question once if a relevant **document** appears in the top k chunks. Timings include retrieval and answer selection over three warm passes, excluding model loading and index construction. p95 uses the nearest-rank method.
 
 | Mode | Recall@5 | Recall@10 | p95 latency | Answer coverage | Negative abstention | External API cost/query |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
@@ -73,7 +77,7 @@ The corpus generator writes the same original Markdown/PDF samples and labels ea
 
 ## Limits and deployment
 
-This is a portfolio-scale demo, not a production document security service. Its shared demo passwords are public; it has no user uploads, OCR, durable live edits, or LLM synthesis. The benchmark corpus is small and deliberately answerable, so document recall is saturated. For a harder follow-up, add paraphrases and competing documents before making stronger quality claims.
+This is a portfolio-scale demo, not a production document security service. Its shared demo passwords are public; uploads are temporary and it has no OCR, durable live edits, or LLM synthesis. The benchmark corpus is small and deliberately answerable, so document recall is saturated. For a harder follow-up, add paraphrases and competing documents before making stronger quality claims. If the app is later hosted, uploading a file sends it to that host; use only documents appropriate for that service.
 
 The intended free live host is Streamlit Community Cloud. **Deployment is deferred at the owner's request.** When ready, choose the [public repository](https://github.com/saidarshan20/GroundedDocs), `streamlit_app.py` as the entrypoint, and Python 3.11 in Cloud, then paste the local `.streamlit/secrets.toml` content into Cloud's Secrets setting. The public app may hibernate and wake on the next visit. Never commit `.streamlit/secrets.toml`, `.venv/`, `.python/`, or `.model-cache/`.
 

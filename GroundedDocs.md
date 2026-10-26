@@ -4,7 +4,7 @@
 
 ## 1. What we're building
 
-GroundedDocs is an evidence-first document question-answering app for people who need to find an answer and inspect its source. It searches a small document collection with keyword and semantic retrieval, combines the results, reranks them, and returns a short extractive answer with a citation. Each signed-in user can search only documents granted to that account. A reproducible benchmark will show whether hybrid retrieval and reranking actually improve recall, citation correctness, latency, and cost on a question set we label ourselves.
+GroundedDocs is an evidence-first document question-answering app for people who need to find an answer and inspect its source. It searches a bundled collection or one document uploaded for the current session with keyword and semantic retrieval, combines the results, reranks them, and returns a short extractive answer with a citation. Each signed-in user can search only documents granted to that account, and an upload stays in its owner's app session. A reproducible benchmark on the bundled collection shows whether hybrid retrieval and reranking improve recall, citation correctness, latency, and cost on a question set we label ourselves.
 
 ## 2. What to expect
 
@@ -12,6 +12,7 @@ GroundedDocs is an evidence-first document question-answering app for people who
 
 - A live Streamlit demo with sign-in, a question box, an answer or explicit abstention, cited excerpts, document/page references, and a compact retrieval trace showing the top results and scores.
 - A command-line ingestion pipeline for local Markdown, plain text, and text-based PDF files. It creates stable document/chunk IDs, records access grants, and precomputes embeddings. Scanned PDFs and OCR are excluded.
+- A Streamlit uploader for one PDF, Markdown, or TXT file at a time (5 MB and 120 chunks maximum). Its chunks and vectors stay in session memory, can be searched alone or with the bundled library, and are cleared on logout; uploads are excluded from the benchmark.
 - Four comparable retrieval modes: BM25, dense vectors, reciprocal-rank fused hybrid, and hybrid followed by cross-encoder reranking.
 - Server-side access filtering before any ranking, answer selection, result display, or benchmark scoring. Synthetic Alice, Bob, and guest accounts make the behavior testable.
 - A labeled question set, repeatable benchmark command, machine-readable results, a generated README results table, and automated checks for access leaks and citations. Report measured numbers only; never invent results.
@@ -34,7 +35,7 @@ GroundedDocs is an evidence-first document question-answering app for people who
 
 Use a fresh virtual environment and commit a fully pinned `requirements.txt` from it. Commit the generated index and model version identifiers; rebuild the index whenever documents, grants, chunking, or embedding model change.
 
-**Estimated build time:** 24–32 focused hours, including writing/labeling the corpus, testing, documentation, and deployment. **Out of scope:** LLM-generated prose, user uploads, OCR, arbitrary external websites, production identity management, large-scale vector databases, and durable storage for edits made in the live demo. The answer is one or two verbatim evidence sentences; if the system has no sufficiently relevant permitted evidence, it abstains.
+**Estimated build time:** 24–32 focused hours, including writing/labeling the corpus, testing, documentation, and deployment. **Out of scope:** LLM-generated prose, OCR, arbitrary external websites, production identity management, large-scale vector databases, and durable storage for uploads or edits made in the live demo. The answer is one or two verbatim evidence sentences; if the system has no sufficiently relevant permitted evidence, it abstains.
 
 ## 3. Build steps
 
@@ -43,6 +44,8 @@ Use a fresh virtual environment and commit a fully pinned `requirements.txt` fro
 Use a standalone Git repository rooted at `GroundedDocs/`. Keep the synthetic corpus immutable in Git. Create 30 short, original English documents about a fictional organization's policies and operations: 12 readable by all three accounts, 9 granted only to Alice, and 9 granted only to Bob. Publish no real confidential material. Public demo passwords are for trying the synthetic access policy; they do not protect secrets because anyone can read them in the README.
 
 The application has three principals: `guest`, `alice`, and `bob`. Store a password hash for each account in Streamlit secrets, never plaintext in code or Git. Each document has an explicit `allowed_users` list; there is no implicit administrator bypass. The retrieval function accepts the authenticated principal, obtains the permitted chunk IDs, and scores **only** that subset. Caches that contain query results must include the principal and index version in their key. The UI must call this same retrieval function and must not expose a file browser or download link that bypasses it.
+
+An uploaded file belongs only to the current Streamlit session, regardless of whether another visitor signs in with the same public demo account. Accept one `.pdf`, `.md`, or `.txt` file of at most 5 MB and 120 searchable chunks. Decode text as UTF-8, reject encrypted/scanned PDFs, sanitize the displayed filename, and give its chunks the current principal as their only access grant. Embed it with the pinned model and keep its chunks/vectors in session memory; never write them to disk or a global cache. Search it alone by default, with an option to combine it with the bundled collection. Clearing the upload or logging out removes it. The committed benchmark continues to evaluate only the bundled collection.
 
 Use 180-word chunks with 40-word overlap, never crossing a PDF page or a Markdown/text section boundary. Normalize whitespace, retain the original text, and assign `doc_id` from the manifest plus `chunk_id = doc_id:page_or_section:ordinal`. For each chunk store document title, relative source path, page number when relevant, section, text, allowed users, and SHA-256 of the text. Precompute normalized float32 embeddings for all chunks. BM25 tokenization is lowercase alphanumeric words; dense score is cosine similarity. For each query, rank permitted chunks independently by BM25 and dense score, take each top 20, and fuse their ranks with reciprocal rank fusion `sum(1/(60 + rank))`, with ranks starting at 1. Cross-encode the hybrid top 20 and show the top 5. Break ties by `chunk_id` so results are deterministic. The first cited answer is the highest-ranked sentence in the top 3 reranked chunks using non-stopword question-token overlap; return at most two sentences from the same chunk. Abstain if the top reranker score is below a threshold selected only on the development labels; record that threshold in `config.json`. A citation always points to the exact chunk that contains the extracted sentence. Never combine fragments into a sentence the source did not say.
 
@@ -68,6 +71,7 @@ GroundedDocs/
 │   └── rubric.md               # labeling and citation judgment rules
 ├── grounded_docs/
 │   ├── ingest.py
+│   ├── uploads.py
 │   ├── auth.py
 │   ├── retrieve.py
 │   ├── answer.py
@@ -81,7 +85,8 @@ GroundedDocs/
 ├── tests/
 │   ├── test_access.py
 │   ├── test_retrieval.py
-│   └── test_citations.py
+│   ├── test_citations.py
+│   └── test_uploads.py
 └── assets/                     # screenshots and short demo GIF
 ```
 
@@ -114,7 +119,7 @@ On macOS/Linux, use `python3.11 -m venv .venv` and `source .venv/bin/activate`; 
 
 ### Phase 3 — demo and evaluation
 
-**Step 6: Build the demo.** Create a login screen and a question form. Show answer/abstention, citation and source excerpt, and an expandable top-5 trace with retrieval-mode scores; include a mode selector for comparing baselines, but use reranked hybrid as the default answer mode. Show the benchmark summary from committed `results/benchmark.json` and clearly label the measured environment. Cache models with `st.cache_resource`, load the committed index once, and avoid rebuilding it on each Streamlit rerun. Files: `streamlit_app.py`, `.streamlit/secrets.example.toml`, `assets/`. Command: `streamlit run streamlit_app.py`. **Done when:** all three accounts can sign in, ask the same question, see only their allowed sources, and log out; a fresh local launch does not require an API key.
+**Step 6: Build the demo.** Create a login screen, a one-file upload form, and a question form. Index uploads in session memory, default to searching the upload alone, and offer a combined search option; clear uploaded search data on logout. Show answer/abstention, citation and source excerpt, and an expandable top-5 trace with retrieval-mode scores; include a mode selector for comparing baselines, but use reranked hybrid as the default answer mode. Show the benchmark summary from committed `results/benchmark.json` and label it as bundled-corpus-only. Cache models with `st.cache_resource`, load the committed index once, and avoid rebuilding it on each Streamlit rerun. Files: `streamlit_app.py`, `grounded_docs/uploads.py`, `.streamlit/secrets.example.toml`, `assets/`, `tests/test_uploads.py`. Command: `streamlit run streamlit_app.py`. **Done when:** all three accounts can sign in, search their allowed bundled sources, upload and search their own document, clear it, and log out; a fresh local launch does not require an API key.
 
 **Step 7: Benchmark and audit.** Run all four modes on the same held-out questions and permitted corpus. Define recall@5 and recall@10 as the fraction of the 30 held-out answerable questions with any labeled relevant **document** in the top k chunks; count each question once. Report citation correctness for the reranked-answer path as the number of non-abstaining held-out answers whose cited excerpt actually supports the answer, divided by all non-abstaining held-out answers; judge these manually with `labels/rubric.md` and record each judgment. Also report coverage (non-abstentions / 30) and abstention accuracy on the 15 negative questions. Warm each model once, then run three timed passes over held-out questions, recording retrieval-plus-answer wall time with `perf_counter`; exclude startup/index loading and report p95 by mode plus machine CPU/RAM/Python versions. Report external API cost per query as `$0.00` because inference is local, and explicitly state that host CPU/electricity is excluded; do not describe the entire service as cost-free at all scales. Files: `grounded_docs/evaluate.py`, `scripts/run_benchmark.py`, `results/benchmark.json`, `results/benchmark.md`, `labels/rubric.md`. Command: `python -m scripts.run_benchmark`. **Done when:** raw per-query results, aggregate table, timing method, model IDs, corpus/index fingerprints, and manual citation judgments reproduce the README table without hand-editing values.
 
@@ -126,11 +131,13 @@ Think of ingestion as preparing a searchable card catalog. The script reads each
 
 When a person signs in, the app identifies their account. The search code first keeps only passages that account may read. It then asks two different searchers to rank them: BM25 rewards matching words, while dense search compares the question's vector with passage vectors to catch paraphrases. Reciprocal rank fusion combines those two lists without assuming their scores use the same scale. A cross-encoder reads the question and each of the 20 shortlisted passages together and reranks them more carefully.
 
+An uploaded document follows the same chunk-and-embed process, but only in memory for that app session. By default, a question searches just that upload, which makes it easy to check its answers. The user can choose to search the upload and bundled collection together. Logout clears the upload; another session cannot see it, even if it uses the same demo account. If deployed later, uploading would transmit the file to that app host, so use only documents appropriate for that host.
+
 The answer step copies one or two useful sentences from a top permitted passage and links them to that passage's exact source. If its evidence score is too weak, it says it cannot answer. This extractive approach makes citations easy to inspect, but it will not synthesize an answer spread across several documents. The benchmark uses questions we label in advance to test which search method finds the right document, whether the displayed citation really supports an answer, how long queries take, and whether an account ever sees restricted material. A good benchmark may show that a simpler mode wins on some questions; report that plainly.
 
 ## 5. Deployment and portfolio
 
-**Best free live host: [Streamlit Community Cloud](https://docs.streamlit.io/deploy/streamlit-community-cloud).** It deploys from GitHub for free. Its resource limits can change, and idle apps hibernate, so keep the sample corpus small, cache the ONNX models, and expect a cold start. Git remains the source of truth; do not depend on the live app's local disk for persistent uploads or edits. [Cloud deployment steps](https://docs.streamlit.io/deploy/streamlit-community-cloud/deploy-your-app/deploy) and [secret handling](https://docs.streamlit.io/deploy/streamlit-community-cloud/deploy-your-app/secrets-management) are documented by Streamlit.
+**Best free live host: [Streamlit Community Cloud](https://docs.streamlit.io/deploy/streamlit-community-cloud).** It deploys from GitHub for free. Its resource limits can change, and idle apps hibernate, so keep the sample corpus small, cache the ONNX models, and expect a cold start. Git remains the source of truth; session uploads are temporary and do not survive logout or server restart. Uploading to a hosted app sends the file to that host. [Cloud deployment steps](https://docs.streamlit.io/deploy/streamlit-community-cloud/deploy-your-app/deploy) and [secret handling](https://docs.streamlit.io/deploy/streamlit-community-cloud/deploy-your-app/secrets-management) are documented by Streamlit.
 
 1. Finish local tests and benchmark, commit `requirements.txt`, corpus, index, labels, results, and app code. Check `git status` and `git ls-files` to ensure `.streamlit/secrets.toml` and real passwords are absent.
 2. Create a **public, standalone** GitHub repository named `GroundedDocs` and push the contents of this folder as its repository root. A standalone repo avoids ambiguous dependency and path discovery when deploying from a larger resume-project workspace.

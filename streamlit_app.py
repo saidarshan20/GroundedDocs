@@ -11,6 +11,7 @@ from grounded_docs.auth import authenticate
 from grounded_docs.ingest import load_index
 from grounded_docs.models import embedding_model, reranking_model
 from grounded_docs.retrieve import MODES, SearchEngine
+from grounded_docs.uploads import create_upload_chunks
 
 ROOT = Path(__file__).resolve().parent
 CONFIG = json.loads((ROOT / "config.json").read_text(encoding="utf-8"))
@@ -50,6 +51,41 @@ def main() -> None:
     if right.button("Log out"):
         st.session_state.clear()
         st.rerun()
+    st.subheader("Your document")
+    st.caption("Upload one text-based PDF, Markdown, or TXT file (up to 5 MB). It stays in this app session's memory, is not saved to disk, and is cleared on logout.")
+    if "upload_widget_version" not in st.session_state:
+        st.session_state.upload_widget_version = 0
+    with st.form("upload"):
+        uploaded = st.file_uploader("Choose a document", type=["pdf", "md", "txt"],
+                                    key=f"session_upload_{st.session_state.upload_widget_version}")
+        upload_submitted = st.form_submit_button("Use this document")
+    if upload_submitted:
+        if uploaded is None:
+            st.warning("Choose a document first.")
+        else:
+            try:
+                chunks = create_upload_chunks(uploaded.name, uploaded.getvalue(), user, CONFIG)
+                with st.spinner("Indexing your document locally..."):
+                    vectors = search_engine().embed_passages([chunk["text"] for chunk in chunks])
+            except (OSError, ValueError) as exc:
+                st.error(f"Upload could not be indexed: {exc}")
+            else:
+                st.session_state.upload_chunks = chunks
+                st.session_state.upload_vectors = vectors
+                st.success(f"Ready: {chunks[0]['title']} ({len(chunks)} searchable passages).")
+    has_upload = bool(st.session_state.get("upload_chunks"))
+    if has_upload:
+        chunks = st.session_state.upload_chunks
+        st.info(f"Current upload: {chunks[0]['title']} ({len(chunks)} passages).")
+        if st.button("Clear uploaded document"):
+            st.session_state.pop("upload_chunks", None)
+            st.session_state.pop("upload_vectors", None)
+            st.session_state.upload_widget_version += 1
+            st.rerun()
+        scope = st.radio("Search scope", ["Uploaded document only", "Uploaded document + sample library"],
+                         horizontal=True)
+    else:
+        scope = "Sample library"
     mode = st.selectbox("Retrieval mode", MODES, index=3,
                         help="Reranked uses hybrid retrieval followed by a cross-encoder.")
     with st.form("question"):
@@ -60,7 +96,11 @@ def main() -> None:
             st.warning("Enter a question first.")
         else:
             try:
-                results = search_engine().search(question, user, mode, limit=10)
+                engine = search_engine()
+                if has_upload:
+                    engine = engine.with_upload(st.session_state.upload_chunks, st.session_state.upload_vectors,
+                                                include_base=scope != "Uploaded document only")
+                results = engine.search(question, user, mode, limit=10)
                 threshold = CONFIG["abstention_threshold"] if mode == "reranked" else None
                 outcome = answer_question(question, results, threshold)
             except (OSError, ValueError) as exc:
@@ -82,7 +122,7 @@ def main() -> None:
     if benchmark_path.exists():
         benchmark = json.loads(benchmark_path.read_text(encoding="utf-8"))
         with st.expander("Measured benchmark"):
-            st.caption(f"Measured on {benchmark['environment']['platform']} with {benchmark['question_counts']['held_out_answerable']} held-out answerable questions")
+            st.caption(f"Bundled sample corpus only (excludes your upload). Measured on {benchmark['environment']['platform']} with {benchmark['question_counts']['held_out_answerable']} held-out answerable questions")
             st.table({mode: {key: value for key, value in row.items() if key in {"recall_at_5", "recall_at_10", "p95_ms"}}
                       for mode, row in benchmark["aggregate"].items()})
             st.write(benchmark["cost_note"])

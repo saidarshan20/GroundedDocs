@@ -2,27 +2,49 @@
 
 from __future__ import annotations
 
+import hashlib
+import importlib
 import json
 from pathlib import Path
 
 import streamlit as st
 from grounded_docs.answer import answer_question
 from grounded_docs.auth import authenticate
-from grounded_docs.ingest import load_index
-from grounded_docs.models import embedding_model, reranking_model
-from grounded_docs.retrieve import MODES, SearchEngine
-from grounded_docs.uploads import create_upload_chunks
+from grounded_docs import ingest as ingest_module
+from grounded_docs import models as models_module
+from grounded_docs import retrieve as retrieve_module
+from grounded_docs import uploads as uploads_module
 
 ROOT = Path(__file__).resolve().parent
 CONFIG = json.loads((ROOT / "config.json").read_text(encoding="utf-8"))
+ENGINE_CACHE_KEY = hashlib.sha256(b"".join((ROOT / name).read_bytes() for name in (
+    "grounded_docs/ingest.py", "grounded_docs/models.py", "grounded_docs/retrieve.py",
+    "grounded_docs/uploads.py",
+    "config.json", "index/build_info.json",
+))).hexdigest()
 
 
 @st.cache_resource(show_spinner="Loading local search models...")
-def search_engine() -> SearchEngine:
-    chunks, vectors, _ = load_index(ROOT)
-    embedder = embedding_model(ROOT, CONFIG)
-    reranker = reranking_model(ROOT, CONFIG)
-    return SearchEngine(chunks, vectors, embedder, reranker, CONFIG["retrieval_candidates"], CONFIG["rrf_k"])
+def _load_search_engine(cache_key: str) -> retrieve_module.SearchEngine:
+    # Streamlit reruns this script without necessarily reloading imported modules.
+    # A new source/index key must also create an instance of the current class.
+    importlib.reload(ingest_module)
+    importlib.reload(models_module)
+    importlib.reload(retrieve_module)
+    importlib.reload(uploads_module)
+    chunks, vectors, _ = ingest_module.load_index(ROOT)
+    embedder = models_module.embedding_model(ROOT, CONFIG)
+    reranker = models_module.reranking_model(ROOT, CONFIG)
+    return retrieve_module.SearchEngine(chunks, vectors, embedder, reranker,
+                                        CONFIG["retrieval_candidates"], CONFIG["rrf_k"])
+
+
+def search_engine() -> retrieve_module.SearchEngine:
+    engine = _load_search_engine(ENGINE_CACHE_KEY)
+    if not hasattr(engine, "embed_passages") or not hasattr(engine, "with_upload"):
+        _load_search_engine.clear()
+        engine = _load_search_engine(ENGINE_CACHE_KEY)
+    return engine
 
 
 def main() -> None:
@@ -64,7 +86,7 @@ def main() -> None:
             st.warning("Choose a document first.")
         else:
             try:
-                chunks = create_upload_chunks(uploaded.name, uploaded.getvalue(), user, CONFIG)
+                chunks = uploads_module.create_upload_chunks(uploaded.name, uploaded.getvalue(), user, CONFIG)
                 with st.spinner("Indexing your document locally..."):
                     vectors = search_engine().embed_passages([chunk["text"] for chunk in chunks])
             except (OSError, ValueError) as exc:
@@ -86,7 +108,7 @@ def main() -> None:
                          horizontal=True)
     else:
         scope = "Sample library"
-    mode = st.selectbox("Retrieval mode", MODES, index=3,
+    mode = st.selectbox("Retrieval mode", retrieve_module.MODES, index=3,
                         help="Reranked uses hybrid retrieval followed by a cross-encoder.")
     with st.form("question"):
         question = st.text_input("Ask a question about the documents")

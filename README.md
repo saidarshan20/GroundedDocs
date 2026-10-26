@@ -17,6 +17,8 @@ py -3.11 -m venv .venv
 
 On macOS/Linux, replace the first two Python paths with `python3.11 -m venv .venv` and `.venv/bin/python`. The first app launch downloads two free ONNX models into the ignored `.model-cache/` folder. No API key is needed. The local secret generator refuses to overwrite an existing secrets file.
 
+After pulling code changes, stop the running Streamlit process with `Ctrl+C` and start it again with the command above. A browser refresh alone may leave Python modules or cached model objects from the previous version in memory.
+
 | Synthetic account | Password | Access |
 | --- | --- | --- |
 | guest | `guest-demo-2026` | 12 shared documents |

@@ -2,7 +2,7 @@
 
 GroundedDocs answers questions from a small document library and shows the exact evidence it used. It compares BM25 keyword search, dense vector search, rank-fused hybrid search, and cross-encoder reranking. Each signed-in demo account can retrieve only its permitted documents.
 
-**Status:** locally built and benchmarked. A public live URL and screenshots will be added after deployment. The [build guide](GroundedDocs.md) explains the full design; [PROGRESS.md](PROGRESS.md) records the current handoff point.
+**Status:** locally built, benchmarked, and [published on GitHub](https://github.com/saidarshan20/GroundedDocs). Streamlit deployment is intentionally deferred while the project owner tests and studies the code. A live URL and screenshots can be added later. The [build guide](GroundedDocs.md) explains the full design; [PROGRESS.md](PROGRESS.md) records the current handoff point.
 
 ## Try it locally
 
@@ -75,7 +75,7 @@ The corpus generator writes the same original Markdown/PDF samples and labels ea
 
 This is a portfolio-scale demo, not a production document security service. Its shared demo passwords are public; it has no user uploads, OCR, durable live edits, or LLM synthesis. The benchmark corpus is small and deliberately answerable, so document recall is saturated. For a harder follow-up, add paraphrases and competing documents before making stronger quality claims.
 
-The intended free live host is Streamlit Community Cloud. To deploy, push this folder as a standalone public GitHub repository, choose `streamlit_app.py` as the entrypoint and Python 3.11 in Cloud, then paste the local `.streamlit/secrets.toml` content into Cloud's Secrets setting. The public app may hibernate and wake on the next visit. Never commit `.streamlit/secrets.toml`, `.venv/`, `.python/`, or `.model-cache/`.
+The intended free live host is Streamlit Community Cloud. **Deployment is deferred at the owner's request.** When ready, choose the [public repository](https://github.com/saidarshan20/GroundedDocs), `streamlit_app.py` as the entrypoint, and Python 3.11 in Cloud, then paste the local `.streamlit/secrets.toml` content into Cloud's Secrets setting. The public app may hibernate and wake on the next visit. Never commit `.streamlit/secrets.toml`, `.venv/`, `.python/`, or `.model-cache/`.
 
 ## License
 

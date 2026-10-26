@@ -20,8 +20,18 @@ def answer_question(question: str, results: list[dict], threshold: float | None 
     if not results or (threshold is not None and results[0]["scores"].get("reranker", float("-inf")) < threshold):
         return {"answer": ABSTENTION, "citation": None, "excerpt": None, "abstained": True, "trace": results}
     query_terms = set(tokens(question)) - STOPWORDS
+    # Exact uploaded headings resolve close reranker scores between similar entries.
+    candidates_to_read = results[:3]
+    if results[0]["chunk"].get("origin") == "session_upload" and "reranker" in results[0]["scores"]:
+        top_score = results[0]["scores"]["reranker"]
+        exact_heading = [item for item in candidates_to_read
+                         if item["chunk"].get("origin") == "session_upload"
+                         and item["scores"].get("reranker", float("-inf")) >= top_score - 0.5
+                         and set(tokens(item["chunk"]["text"].splitlines()[0])) - STOPWORDS == query_terms]
+        if exact_heading:
+            candidates_to_read = exact_heading + [item for item in candidates_to_read if item not in exact_heading]
     selected = None
-    for item in results[:3]:
+    for item in candidates_to_read:
         candidates = [(len(query_terms & (set(tokens(sentence)) - STOPWORDS)), sentence)
                       for sentence in sentences(item["chunk"]["text"])]
         if candidates:

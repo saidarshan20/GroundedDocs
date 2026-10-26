@@ -5,6 +5,7 @@ from __future__ import annotations
 import hashlib
 import io
 import re
+import unicodedata
 from pathlib import Path
 from typing import Iterator
 
@@ -23,6 +24,17 @@ def safe_filename(name: str) -> str:
     return clean
 
 
+def pdf_blocks(layout_text: str) -> list[str]:
+    """Keep visually separated heading/command pairs as separate evidence units."""
+    blocks = []
+    for raw_block in re.split(r"\n\s*\n+", layout_text.replace("\r", "")):
+        lines = [normalize(unicodedata.normalize("NFKC", line)) for line in raw_block.splitlines()]
+        lines = [line for line in lines if line]
+        if lines:
+            blocks.append("\n".join(lines))
+    return blocks
+
+
 def uploaded_sections(name: str, data: bytes) -> Iterator[tuple[str, int | None, str]]:
     suffix = Path(name).suffix.lower()
     if suffix == ".pdf":
@@ -33,9 +45,9 @@ def uploaded_sections(name: str, data: bytes) -> Iterator[tuple[str, int | None,
             if reader.is_encrypted:
                 raise ValueError("Password-protected PDFs are not supported.")
             for page_number, page in enumerate(reader.pages, 1):
-                text = normalize(page.extract_text() or "")
-                if text:
-                    yield f"page-{page_number}", page_number, text
+                layout = page.extract_text(extraction_mode="layout") or page.extract_text() or ""
+                for block_number, text in enumerate(pdf_blocks(layout), 1):
+                    yield f"page-{page_number}-b{block_number:03d}", page_number, text
         except ValueError:
             raise
         except Exception as exc:
@@ -79,7 +91,9 @@ def create_upload_chunks(name: str, data: bytes, principal: str, config: dict) -
     doc_id = "upload-" + hashlib.sha256(data).hexdigest()[:16]
     chunks: list[dict] = []
     for section, page, text in uploaded_sections(filename, data):
-        for ordinal, passage in enumerate(chunk_text(text, config["chunk_words"], config["chunk_overlap_words"]), 1):
+        passages = ([text] if len(text.split()) <= config["chunk_words"] else
+                    chunk_text(text, config["chunk_words"], config["chunk_overlap_words"]))
+        for ordinal, passage in enumerate(passages, 1):
             if len(chunks) >= MAX_UPLOAD_CHUNKS:
                 raise ValueError("The document is too long for this demo (120 chunks maximum).")
             chunks.append({

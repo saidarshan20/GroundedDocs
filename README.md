@@ -31,6 +31,8 @@ These credentials and documents are intentionally public. They demonstrate serve
 
 After signing in, choose a text-based `.pdf`, `.md`, or `.txt` file under 5 MB and click **Use this document**. The default **Search scope** is **Uploaded document only**; switch to **Uploaded document + sample library** if you want both. Try the safe [example file](assets/upload_example.txt) and ask “When does the violet ferry leave Harbor Nine?” The answer should say **6:40 a.m. every Tuesday** and cite `upload_example.txt`. Click **Clear uploaded document** or log out to remove it from search. Only one upload is active at a time, and files over 120 passages, scanned PDFs, encrypted PDFs, and non-UTF-8 text are rejected. The file is processed in server memory for this app session, never written into the repository or the benchmark.
 
+For a text-based PDF cheat sheet, the uploader uses the page layout to keep visually separated heading and command groups as individual passages. Answers can therefore show a short heading and command instead of a whole page. After pulling a change to PDF handling, stop and restart Streamlit, click **Use this document** again, and rerun your question so the upload is re-indexed.
+
 ## How it works
 
 ```mermaid

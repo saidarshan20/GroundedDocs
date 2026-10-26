@@ -129,7 +129,10 @@ def main() -> None:
                 st.error(f"Search could not start: {exc}")
             else:
                 st.subheader("Answer")
-                st.write(outcome["answer"])
+                if "\n" in outcome["answer"]:
+                    st.code(outcome["answer"], language=None)
+                else:
+                    st.write(outcome["answer"])
                 if outcome["citation"]:
                     citation = outcome["citation"]
                     st.caption(f"Source: {citation['title']} · {citation['location']} · {citation['chunk_id']}")

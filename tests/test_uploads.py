@@ -4,7 +4,7 @@ from pathlib import Path
 import pytest
 
 from grounded_docs.answer import answer_question
-from grounded_docs.uploads import MAX_UPLOAD_BYTES, create_upload_chunks
+from grounded_docs.uploads import MAX_UPLOAD_BYTES, create_upload_chunks, pdf_blocks
 
 ROOT = Path(__file__).resolve().parents[1]
 CONFIG = json.loads((ROOT / "config.json").read_text(encoding="utf-8"))
@@ -26,6 +26,33 @@ def test_pdf_upload_retains_page_number():
     assert len(chunks) == 1
     assert chunks[0]["page"] == 1
     assert "ten black-and-white pages" in chunks[0]["text"]
+
+
+def test_pdf_blocks_keep_each_heading_with_its_command():
+    layout = ("Delete a container\n"
+              "docker rm <container_name>\n\n"
+              "Fetch logs of a container\n"
+              "docker logs <container_name>\n")
+    assert pdf_blocks(layout) == [
+        "Delete a container\ndocker rm <container_name>",
+        "Fetch logs of a container\ndocker logs <container_name>",
+    ]
+
+
+def test_uploaded_exact_heading_wins_near_reranker_tie():
+    question = "list all running containers"
+
+    def result(text, score):
+        return {"chunk": {"text": text, "origin": "session_upload", "page": 1,
+                          "section": "page-1", "chunk_id": text, "doc_id": "upload-test",
+                          "title": "commands.pdf", "path": "Session upload: commands.pdf"},
+                "scores": {"reranker": score}}
+
+    results = [
+        result("List all Local containers (running & stopped)\ndocker ps -a", 6.66),
+        result("List all running containers\ndocker ps", 6.46),
+    ]
+    assert answer_question(question, results)["answer"] == "List all running containers\ndocker ps"
 
 
 @pytest.mark.parametrize("name,data", [

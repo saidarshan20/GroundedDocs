@@ -1,0 +1,30 @@
+{"doc_id": "pub01", "title": "Visitor check-in", "path": "corpus/docs/pub01.md", "allowed_users": ["guest", "alice", "bob"]}
+{"doc_id": "pub02", "title": "Meeting room bookings", "path": "corpus/docs/pub02.md", "allowed_users": ["guest", "alice", "bob"]}
+{"doc_id": "pub03", "title": "Office hours", "path": "corpus/docs/pub03.md", "allowed_users": ["guest", "alice", "bob"]}
+{"doc_id": "pub04", "title": "Lost property", "path": "corpus/docs/pub04.md", "allowed_users": ["guest", "alice", "bob"]}
+{"doc_id": "pub05", "title": "Bike parking", "path": "corpus/docs/pub05.md", "allowed_users": ["guest", "alice", "bob"]}
+{"doc_id": "pub06", "title": "Guest Wi-Fi", "path": "corpus/docs/pub06.md", "allowed_users": ["guest", "alice", "bob"]}
+{"doc_id": "pub07", "title": "Kitchen cleanup", "path": "corpus/docs/pub07.md", "allowed_users": ["guest", "alice", "bob"]}
+{"doc_id": "pub08", "title": "Mail delivery", "path": "corpus/docs/pub08.md", "allowed_users": ["guest", "alice", "bob"]}
+{"doc_id": "pub09", "title": "Workshop registration", "path": "corpus/docs/pub09.md", "allowed_users": ["guest", "alice", "bob"]}
+{"doc_id": "pub10", "title": "Accessibility requests", "path": "corpus/docs/pub10.md", "allowed_users": ["guest", "alice", "bob"]}
+{"doc_id": "pub11", "title": "Emergency assembly", "path": "corpus/docs/pub11.md", "allowed_users": ["guest", "alice", "bob"]}
+{"doc_id": "pub12", "title": "Public printing", "path": "corpus/docs/pub12.pdf", "allowed_users": ["guest", "alice", "bob"]}
+{"doc_id": "alice01", "title": "Design review schedule", "path": "corpus/docs/alice01.md", "allowed_users": ["alice"]}
+{"doc_id": "alice02", "title": "Interface testing budget", "path": "corpus/docs/alice02.md", "allowed_users": ["alice"]}
+{"doc_id": "alice03", "title": "Research consent", "path": "corpus/docs/alice03.md", "allowed_users": ["alice"]}
+{"doc_id": "alice04", "title": "Prototype archive", "path": "corpus/docs/alice04.md", "allowed_users": ["alice"]}
+{"doc_id": "alice05", "title": "Color review", "path": "corpus/docs/alice05.md", "allowed_users": ["alice"]}
+{"doc_id": "alice06", "title": "Interview notes", "path": "corpus/docs/alice06.md", "allowed_users": ["alice"]}
+{"doc_id": "alice07", "title": "Design handoff", "path": "corpus/docs/alice07.md", "allowed_users": ["alice"]}
+{"doc_id": "alice08", "title": "Sketch library", "path": "corpus/docs/alice08.md", "allowed_users": ["alice"]}
+{"doc_id": "alice09", "title": "Pilot feedback", "path": "corpus/docs/alice09.md", "allowed_users": ["alice"]}
+{"doc_id": "bob01", "title": "Inventory count", "path": "corpus/docs/bob01.md", "allowed_users": ["bob"]}
+{"doc_id": "bob02", "title": "Repair approval", "path": "corpus/docs/bob02.md", "allowed_users": ["bob"]}
+{"doc_id": "bob03", "title": "Delivery window", "path": "corpus/docs/bob03.md", "allowed_users": ["bob"]}
+{"doc_id": "bob04", "title": "Tool checkout", "path": "corpus/docs/bob04.md", "allowed_users": ["bob"]}
+{"doc_id": "bob05", "title": "Safety inspection", "path": "corpus/docs/bob05.md", "allowed_users": ["bob"]}
+{"doc_id": "bob06", "title": "Spare parts", "path": "corpus/docs/bob06.md", "allowed_users": ["bob"]}
+{"doc_id": "bob07", "title": "Vehicle log", "path": "corpus/docs/bob07.md", "allowed_users": ["bob"]}
+{"doc_id": "bob08", "title": "Waste collection", "path": "corpus/docs/bob08.md", "allowed_users": ["bob"]}
+{"doc_id": "bob09", "title": "Equipment labels", "path": "corpus/docs/bob09.md", "allowed_users": ["bob"]}

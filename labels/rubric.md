@@ -1,0 +1,5 @@
+# Label and citation review rubric
+
+The 60 questions in `questions.jsonl` were written against the original fictional corpus before the held-out benchmark. `relevant_doc_ids` identifies a permitted document that answers the question. For forbidden questions, `relevant_doc_ids` is empty and `forbidden_doc_ids` identifies the document that must never appear for that account. Unanswerable questions have neither list populated.
+
+Review every non-abstaining answer to a held-out answerable question after the final threshold and index are fixed. Mark `supported: true` only when the cited excerpt directly answers the question and the answer sentence accurately represents that excerpt. A sentence copied from the source can still be irrelevant, so copying alone is insufficient. Mark `false` if the cited text addresses another topic, lacks the requested fact, or would mislead a reader. Save each judgment in `citation_judgments.jsonl` with `question_id`, SHA-256 of the exact answer string as `answer_sha256`, Boolean `supported`, and a short `note`. Rerun the benchmark; it rejects stale answer hashes and reports correctness only when all applicable judgments are present.

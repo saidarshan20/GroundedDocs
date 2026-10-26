@@ -1,0 +1,7 @@
+streamlit
+pypdf
+rank-bm25
+fastembed
+numpy
+pytest
+bcrypt

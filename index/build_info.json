@@ -1,0 +1,9 @@
+{
+  "corpus_fingerprint": "2470cc0030a6db7b0bcc2688cf948547bd5eb818d6ac0deb69bd014a7a7070b3",
+  "embedding_model": "BAAI/bge-small-en-v1.5",
+  "embedding_revision": "aa8f8b060edb00e03bfdd08813a2949946c8ba55",
+  "reranker_model": "Xenova/ms-marco-MiniLM-L-6-v2",
+  "reranker_revision": "a09144355adeed5f58c8ed011d209bf8ee5a1fec",
+  "chunk_count": 59,
+  "embedding_dimensions": 384
+}

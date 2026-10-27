@@ -37,9 +37,9 @@ For a text-based PDF cheat sheet, the uploader uses the page layout to keep visu
 
 ### Optional OpenRouter answer organization
 
-To enable the **Organize answer with OpenRouter (free model)** checkbox, put `OPENROUTER_API_KEY=your_key_here` in a `.env` file in this directory, then restart Streamlit. `.env` is ignored by Git. You may instead set the environment variable, or later add `OPENROUTER_API_KEY` as a top-level Streamlit Cloud secret. The app uses [`nvidia/nemotron-3.5-super-vl:free`](https://openrouter.ai/nvidia/nemotron-3.5-super-vl:free); the model ID without `:free` is a paid route. The checkbox starts off, so each user chooses whether to send a question and up to five access-filtered evidence passages to OpenRouter. For a short document, those passages may contain most or all of its text. The account password is not sent, and the API key is used only as the request credential.
+To enable the **Organize answer with OpenRouter (free model)** checkbox, put `OPENROUTER_API_KEY=your_key_here` in a `.env` file in this directory, then restart Streamlit. `.env` is ignored by Git. You may instead set the environment variable, or later add `OPENROUTER_API_KEY` as a top-level Streamlit Cloud secret. The app uses [`nvidia/nemotron-3.5-super-vl:free`](https://openrouter.ai/nvidia/nemotron-3.5-super-vl:free); the model ID without `:free` is a paid route. The checkbox starts off, so each user chooses whether to send a question and up to 15 short excerpts from five access-filtered passages to OpenRouter. For a short document, those excerpts may contain most or all of its text. The account password is not sent, and the API key is used only as the request credential.
 
-OpenRouter selects one to three **verbatim** quotes and their evidence IDs. The app checks that every quote occurs exactly in the cited permitted passage, then builds the source labels itself. If the model paraphrases, invents text, returns invalid JSON, or the free endpoint fails, the app shows the local extractive answer. An abstention does not call the API. This keeps displayed answers grounded in source text, but it does not guarantee that the source itself is correct or that the selected quote is the most relevant. The free endpoint's [data notice](https://openrouter.ai/nvidia/nemotron-3.5-super-vl:free) says not to send confidential or personal data; use the option only with suitable documents. The committed benchmark below measures the local extractive path, not this optional API step.
+The app prepares short, verbatim source excerpts and gives each an ID. OpenRouter selects one to three IDs; the app displays the original excerpt text and builds the citations itself. Model-written claims are never displayed. If the response has invalid IDs, the free endpoint fails, or the model runs out of output tokens, the app shows the local extractive answer and a short reason. An abstention does not call the API. This keeps displayed answers grounded in source text, but it does not guarantee that the source itself is correct or that the selected excerpt is the most relevant. The free endpoint's [data notice](https://openrouter.ai/nvidia/nemotron-3.5-super-vl:free) says not to send confidential or personal data; use the option only with suitable documents. The committed benchmark below measures the local extractive path, not this optional API step.
 
 ## How it works
 
@@ -56,8 +56,8 @@ flowchart LR
     F --> R[Cross-encoder reranking]
     R --> E[Extract sentence or abstain]
     E --> C[Answer and exact citation]
-    E -->|Optional, with consent| O[OpenRouter selects exact quotes]
-    O --> V[Validate each quote against permitted source]
+    E -->|Optional, with consent| O[OpenRouter selects excerpt IDs]
+    O --> V[Display original excerpts and citations]
     V --> C
 ```
 

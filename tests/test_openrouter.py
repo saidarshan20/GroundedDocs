@@ -13,9 +13,9 @@ def result(text, chunk_id="doc:1"):
             "scores": {"reranker": 2.0}}
 
 
-def response(quotes):
+def response(ids):
     return io.BytesIO(json.dumps({"choices": [{"message": {
-        "content": json.dumps({"quotes": quotes})}}]}).encode("utf-8"))
+        "content": json.dumps({"ids": ids})}}]}).encode("utf-8"))
 
 
 def test_local_env_key_is_loaded_without_tracking_or_echoing_it(tmp_path, monkeypatch):
@@ -24,26 +24,42 @@ def test_local_env_key_is_loaded_without_tracking_or_echoing_it(tmp_path, monkey
     assert api_key(tmp_path) == "local-test-key"
 
 
-def test_openrouter_selects_only_exact_cited_evidence():
+def test_openrouter_selects_only_locally_held_cited_evidence():
     text = "Delete a container\ndocker rm <container_name>"
-    with patch("grounded_docs.openrouter.urlopen", return_value=response([
-        {"id": "E1", "quote": "docker rm <container_name>"}
-    ])) as send:
+    with patch("grounded_docs.openrouter.urlopen", return_value=response(["S1"])) as send:
         selected = organize_evidence("deleting a container", [result(text)], "test-key")
     request = send.call_args.args[0]
     payload = json.loads(request.data)
     assert payload["model"] == MODEL == "nvidia/nemotron-3.5-super-vl:free"
-    assert json.loads(payload["messages"][1]["content"])["evidence"] == [{"id": "E1", "text": text}]
-    assert selected == [{"quote": "docker rm <container_name>", "chunk_id": "doc:1",
+    assert payload["reasoning"] == {"enabled": False}
+    assert json.loads(payload["messages"][1]["content"])["evidence"] == [{"id": "S1", "text": text}]
+    assert selected == [{"quote": text, "chunk_id": "doc:1",
                          "title": "Demo.txt", "location": "s1", "excerpt": text}]
 
 
-@pytest.mark.parametrize("quotes", [
-    [{"id": "E1", "quote": "docker rm removes containers safely"}],
-    [{"id": "E2", "quote": "docker rm"}],
+@pytest.mark.parametrize("ids", [
+    ["S2"],
+    ["S1", "S1"],
     [],
 ])
-def test_openrouter_rejects_unsupported_or_empty_output(quotes):
-    with patch("grounded_docs.openrouter.urlopen", return_value=response(quotes)):
-        with pytest.raises(ValueError, match="ungrounded or invalid"):
+def test_openrouter_rejects_invalid_ids_or_empty_output(ids):
+    with patch("grounded_docs.openrouter.urlopen", return_value=response(ids)):
+        with pytest.raises(ValueError, match="invalid excerpt IDs"):
+            organize_evidence("deleting a container", [result("docker rm <container_name>")], "test-key")
+
+
+def test_openrouter_does_not_display_model_written_text():
+    model_output = io.BytesIO(json.dumps({"choices": [{"message": {
+        "content": '{"quotes":[{"id":"S1","quote":"Invented claim"}]}'
+    }}]}).encode("utf-8"))
+    with patch("grounded_docs.openrouter.urlopen", return_value=model_output):
+        with pytest.raises(ValueError, match="invalid excerpt IDs"):
+            organize_evidence("deleting a container", [result("docker rm <container_name>")], "test-key")
+
+
+def test_openrouter_reports_exhausted_output_budget():
+    no_content = io.BytesIO(json.dumps({"choices": [{"message": {"content": None},
+                                                    "finish_reason": "length"}]}).encode("utf-8"))
+    with patch("grounded_docs.openrouter.urlopen", return_value=no_content):
+        with pytest.raises(ValueError, match="output budget"):
             organize_evidence("deleting a container", [result("docker rm <container_name>")], "test-key")

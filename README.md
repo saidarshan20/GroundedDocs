@@ -2,7 +2,7 @@
 
 GroundedDocs answers questions from a small document library or a document you upload for the current session, and shows the exact evidence it used. It compares BM25 keyword search, dense vector search, rank-fused hybrid search, and cross-encoder reranking. Each signed-in demo account can retrieve only its permitted bundled documents; uploads are isolated to the current app session.
 
-**Status:** locally built, benchmarked, and [published on GitHub](https://github.com/saidarshan20/GroundedDocs). Streamlit deployment is intentionally deferred while the project owner tests and studies the code. A live URL and screenshots can be added later. Start with the [beginner-to-advanced walkthrough](WALKTHROUGH.md) to understand the working code; the [build guide](GroundedDocs.md) explains the original design, and [PROGRESS.md](PROGRESS.md) records the current handoff point.
+**Status:** locally built, benchmarked, and [published on GitHub](https://github.com/saidarshan20/GroundedDocs). Streamlit deployment is intentionally deferred while the project owner tests and studies the code. A live URL and screenshots can be added later. The [build guide](GroundedDocs.md) explains the original design, and [PROGRESS.md](PROGRESS.md) records the current handoff point.
 
 ## Try it locally
 

@@ -9,7 +9,7 @@ from pathlib import Path
 
 import streamlit as st
 from grounded_docs.answer import answer_question
-from grounded_docs.auth import authenticate
+from grounded_docs.auth import authenticate, demo_hashes
 from grounded_docs import ingest as ingest_module
 from grounded_docs import models as models_module
 from grounded_docs import openrouter as openrouter_module
@@ -60,7 +60,12 @@ def main() -> None:
             password = st.text_input("Password", type="password")
             submitted = st.form_submit_button("Sign in")
         if submitted:
-            principal = authenticate(user, password, dict(st.secrets["users"]))
+            try:
+                hashes = demo_hashes(ROOT, st.secrets)
+            except ValueError as exc:
+                st.error(str(exc))
+                return
+            principal = authenticate(user, password, hashes)
             if principal:
                 st.session_state.principal = principal
                 st.rerun()

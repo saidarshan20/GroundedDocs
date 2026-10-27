@@ -19,6 +19,8 @@ On macOS/Linux, replace the first two Python paths with `python3.11 -m venv .ven
 
 After pulling code changes, stop the running Streamlit process with `Ctrl+C` and start it again with the command above. A browser refresh alone may leave Python modules or cached model objects from the previous version in memory.
 
+If a published demo password is rejected locally, confirm you started this repository's `streamlit_app.py`, restart the Streamlit process, and try again. Local login reads this project's `.streamlit/secrets.toml` directly, even if Streamlit was launched from another folder. If that file is missing, run `scripts.setup_demo_secrets` as shown above. If it contains different hashes, the generator intentionally will not overwrite it; back up or remove that file before regenerating the published demo hashes. Hosted deployments use their own configured Streamlit secrets.
+
 | Synthetic account | Password | Access |
 | --- | --- | --- |
 | guest | `guest-demo-2026` | 12 shared documents |

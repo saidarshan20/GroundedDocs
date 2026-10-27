@@ -12,6 +12,7 @@ from grounded_docs.answer import answer_question
 from grounded_docs.auth import authenticate
 from grounded_docs import ingest as ingest_module
 from grounded_docs import models as models_module
+from grounded_docs import openrouter as openrouter_module
 from grounded_docs import retrieve as retrieve_module
 from grounded_docs import uploads as uploads_module
 
@@ -110,6 +111,13 @@ def main() -> None:
         scope = "Sample library"
     mode = st.selectbox("Retrieval mode", retrieve_module.MODES, index=3,
                         help="Reranked uses hybrid retrieval followed by a cross-encoder.")
+    router_key = openrouter_module.api_key(ROOT, dict(st.secrets))
+    use_openrouter = st.checkbox("Organize answer with OpenRouter (free model)", value=False,
+                                 disabled=not router_key)
+    if router_key:
+        st.caption("When selected, the question and up to five permitted evidence passages are sent to OpenRouter. Only exact source quotes are displayed; invalid or failed responses fall back to the local answer. Do not send confidential or personal data to the free endpoint.")
+    else:
+        st.caption("OpenRouter is unavailable: add OPENROUTER_API_KEY to the local .env file to enable it.")
     with st.form("question"):
         question = st.text_input("Ask a question about the documents")
         asked = st.form_submit_button("Find evidence")
@@ -125,18 +133,35 @@ def main() -> None:
                 results = engine.search(question, user, mode, limit=10)
                 threshold = CONFIG["abstention_threshold"] if mode == "reranked" else None
                 outcome = answer_question(question, results, threshold)
+                organized = None
+                router_error = False
+                if use_openrouter and not outcome["abstained"]:
+                    try:
+                        organized = openrouter_module.organize_evidence(
+                            question, results, router_key,
+                            outcome["citation"]["chunk_id"] if outcome["citation"] else None)
+                    except ValueError:
+                        router_error = True
             except (OSError, ValueError) as exc:
                 st.error(f"Search could not start: {exc}")
             else:
                 st.subheader("Answer")
-                if "\n" in outcome["answer"]:
-                    st.code(outcome["answer"], language=None)
+                if router_error:
+                    st.warning("OpenRouter could not provide a validated answer. Showing the local evidence instead.")
+                if organized:
+                    for entry in organized:
+                        st.code(entry["quote"], language=None)
+                        st.caption(f"Source: {entry['title']} · {entry['location']} · {entry['chunk_id']}")
+                    st.caption("Organized from exact source quotes verified by the app.")
                 else:
-                    st.write(outcome["answer"])
-                if outcome["citation"]:
-                    citation = outcome["citation"]
-                    st.caption(f"Source: {citation['title']} · {citation['location']} · {citation['chunk_id']}")
-                    st.text_area("Supporting excerpt", outcome["excerpt"], height=130)
+                    if "\n" in outcome["answer"]:
+                        st.code(outcome["answer"], language=None)
+                    else:
+                        st.write(outcome["answer"])
+                    if outcome["citation"]:
+                        citation = outcome["citation"]
+                        st.caption(f"Source: {citation['title']} · {citation['location']} · {citation['chunk_id']}")
+                        st.text_area("Supporting excerpt", outcome["excerpt"], height=130)
                 with st.expander("Top results and scores"):
                     for item in outcome["trace"][:5]:
                         chunk = item["chunk"]

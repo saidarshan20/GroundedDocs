@@ -15,7 +15,7 @@ py -3.11 -m venv .venv
 .\.venv\Scripts\python.exe -m streamlit run streamlit_app.py
 ```
 
-On macOS/Linux, replace the first two Python paths with `python3.11 -m venv .venv` and `.venv/bin/python`. The first app launch downloads two free ONNX models into the ignored `.model-cache/` folder. No API key is needed. The local secret generator refuses to overwrite an existing secrets file.
+On macOS/Linux, replace the first two Python paths with `python3.11 -m venv .venv` and `.venv/bin/python`. The first app launch downloads two free ONNX models into the ignored `.model-cache/` folder. No API key is needed for local extractive answers. The local secret generator refuses to overwrite an existing secrets file.
 
 After pulling code changes, stop the running Streamlit process with `Ctrl+C` and start it again with the command above. A browser refresh alone may leave Python modules or cached model objects from the previous version in memory.
 
@@ -33,6 +33,12 @@ After signing in, choose a text-based `.pdf`, `.md`, or `.txt` file under 5 MB a
 
 For a text-based PDF cheat sheet, the uploader uses the page layout to keep visually separated heading and command groups as individual passages. Answers can therefore show a short heading and command instead of a whole page. After pulling a change to PDF handling, stop and restart Streamlit, click **Use this document** again, and rerun your question so the upload is re-indexed.
 
+### Optional OpenRouter answer organization
+
+To enable the **Organize answer with OpenRouter (free model)** checkbox, put `OPENROUTER_API_KEY=your_key_here` in a `.env` file in this directory, then restart Streamlit. `.env` is ignored by Git. You may instead set the environment variable, or later add `OPENROUTER_API_KEY` as a top-level Streamlit Cloud secret. The app uses [`nvidia/nemotron-3.5-super-vl:free`](https://openrouter.ai/nvidia/nemotron-3.5-super-vl:free); the model ID without `:free` is a paid route. The checkbox starts off, so each user chooses whether to send a question and up to five access-filtered evidence passages to OpenRouter. For a short document, those passages may contain most or all of its text. The account password is not sent, and the API key is used only as the request credential.
+
+OpenRouter selects one to three **verbatim** quotes and their evidence IDs. The app checks that every quote occurs exactly in the cited permitted passage, then builds the source labels itself. If the model paraphrases, invents text, returns invalid JSON, or the free endpoint fails, the app shows the local extractive answer. An abstention does not call the API. This keeps displayed answers grounded in source text, but it does not guarantee that the source itself is correct or that the selected quote is the most relevant. The free endpoint's [data notice](https://openrouter.ai/nvidia/nemotron-3.5-super-vl:free) says not to send confidential or personal data; use the option only with suitable documents. The committed benchmark below measures the local extractive path, not this optional API step.
+
 ## How it works
 
 ```mermaid
@@ -48,9 +54,12 @@ flowchart LR
     F --> R[Cross-encoder reranking]
     R --> E[Extract sentence or abstain]
     E --> C[Answer and exact citation]
+    E -->|Optional, with consent| O[OpenRouter selects exact quotes]
+    O --> V[Validate each quote against permitted source]
+    V --> C
 ```
 
-The committed index holds 59 passages from 30 original fictional documents: 12 shared, 9 Alice-only, and 9 Bob-only. Access grants are in `corpus/manifest.jsonl`; search filters by principal before scoring or displaying any result. An uploaded document is chunked and embedded with the same pinned model, then kept only in that browser session's app memory. The answer is a verbatim source sentence, never generated prose. A development-only reranker threshold controls abstention. Rebuild the committed index after any bundled corpus, grant, chunking, or embedding-model change.
+The committed index holds 59 passages from 30 original fictional documents: 12 shared, 9 Alice-only, and 9 Bob-only. Access grants are in `corpus/manifest.jsonl`; search filters by principal before scoring or displaying any result. An uploaded document is chunked and embedded with the same pinned model, then kept only in that browser session's app memory. Displayed answer text is copied from a source passage, even when OpenRouter chooses which quotes to show. A development-only reranker threshold controls abstention. Rebuild the committed index after any bundled corpus, grant, chunking, or embedding-model change.
 
 ## Measured results
 
@@ -81,9 +90,9 @@ The corpus generator writes the same original Markdown/PDF samples and labels ea
 
 ## Limits and deployment
 
-This is a portfolio-scale demo, not a production document security service. Its shared demo passwords are public; uploads are temporary and it has no OCR, durable live edits, or LLM synthesis. The benchmark corpus is small and deliberately answerable, so document recall is saturated. For a harder follow-up, add paraphrases and competing documents before making stronger quality claims. If the app is later hosted, uploading a file sends it to that host; use only documents appropriate for that service.
+This is a portfolio-scale demo, not a production document security service. Its shared demo passwords are public; uploads are temporary and it has no OCR or durable live edits. The optional LLM step selects source quotes rather than writing new prose. The benchmark corpus is small and deliberately answerable, so document recall is saturated. For a harder follow-up, add paraphrases and competing documents before making stronger quality claims. If the app is later hosted, uploading a file sends it to that host; use only documents appropriate for that service.
 
-The intended free live host is Streamlit Community Cloud. **Deployment is deferred at the owner's request.** When ready, choose the [public repository](https://github.com/saidarshan20/GroundedDocs), `streamlit_app.py` as the entrypoint, and Python 3.11 in Cloud, then paste the local `.streamlit/secrets.toml` content into Cloud's Secrets setting. The public app may hibernate and wake on the next visit. Never commit `.streamlit/secrets.toml`, `.venv/`, `.python/`, or `.model-cache/`.
+The intended free live host is Streamlit Community Cloud. **Deployment is deferred at the owner's request.** When ready, choose the [public repository](https://github.com/saidarshan20/GroundedDocs), `streamlit_app.py` as the entrypoint, and Python 3.11 in Cloud, then paste the local `.streamlit/secrets.toml` content into Cloud's Secrets setting; add the OpenRouter key there only if you want the option available online. The public app may hibernate and wake on the next visit. Never commit `.env`, `.streamlit/secrets.toml`, `.venv/`, `.python/`, or `.model-cache/`.
 
 ## License
 

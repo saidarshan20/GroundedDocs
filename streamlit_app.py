@@ -51,6 +51,14 @@ def search_engine() -> retrieve_module.SearchEngine:
 
 def _style_workspace() -> None:
     """Style only GroundedDocs-owned markup; leave Streamlit widget internals alone."""
+    dark = st.context.theme.type == "dark"
+    palette = ({"card": "#172637", "border": "#304459", "muted": "#A3B7C5",
+                "text": "#E7F0F4", "accent": "#70E0D4", "empty": "#132535"}
+               if dark else
+               {"card": "#FFFFFF", "border": "#DFE8EE", "muted": "#64788C",
+                "text": "#14273B", "accent": "#147E78", "empty": "#F9FCFC"})
+    variables = "; ".join(f"--gd-{name}: {value}" for name, value in palette.items())
+    st.markdown(f"<style>:root {{{variables};}}</style>", unsafe_allow_html=True)
     st.markdown("""
     <style>
       .gd-hero { position: relative; overflow: hidden; padding: 2.5rem 2.8rem;
@@ -70,22 +78,22 @@ def _style_workspace() -> None:
       .gd-hero p { color: #d4e2eb; max-width: 40rem; font-size: 1.05rem;
         line-height: 1.6; margin: 0; }
       .gd-stat { min-height: 6.3rem; padding: 1rem 1.15rem;
-        border: 1px solid #dfe8ee; border-radius: 1rem; background: #fff; }
-      .gd-stat-label { color: #64788c; font-size: .68rem; font-weight: 800;
+        border: 1px solid var(--gd-border); border-radius: 1rem; background: var(--gd-card); }
+      .gd-stat-label { color: var(--gd-muted); font-size: .68rem; font-weight: 800;
         letter-spacing: .13em; text-transform: uppercase; }
-      .gd-stat-value { color: #14273b; font-size: 1.05rem; font-weight: 750;
+      .gd-stat-value { color: var(--gd-text); font-size: 1.05rem; font-weight: 750;
         margin-top: .45rem; line-height: 1.25; }
-      .gd-stat-note { color: #73869a; font-size: .78rem; margin-top: .28rem; }
+      .gd-stat-note { color: var(--gd-muted); font-size: .78rem; margin-top: .28rem; }
       .gd-brand { font-size: 1.22rem; font-weight: 800; letter-spacing: -.04em;
-        color: #163247; margin: .3rem 0 .2rem; }
-      .gd-brand-mark { color: #087f76; margin-right: .38rem; }
-      .gd-side-note { color: #587185; font-size: .84rem; line-height: 1.5;
+        color: var(--gd-text); margin: .3rem 0 .2rem; }
+      .gd-brand-mark { color: var(--gd-accent); margin-right: .38rem; }
+      .gd-side-note { color: var(--gd-muted); font-size: .84rem; line-height: 1.5;
         margin-bottom: 1rem; }
-      .gd-section-label { color: #147e78; font-size: .73rem; font-weight: 800;
+      .gd-section-label { color: var(--gd-accent); font-size: .73rem; font-weight: 800;
         letter-spacing: .13em; text-transform: uppercase; margin: .2rem 0 .6rem; }
-      .gd-empty { text-align: center; border: 1px dashed #b9cfd3; border-radius: 1.1rem;
-        padding: 2.5rem 1.5rem; background: #f9fcfc; color: #4d6676; }
-      .gd-empty strong { display: block; color: #173247; font-size: 1.25rem;
+      .gd-empty { text-align: center; border: 1px dashed var(--gd-border); border-radius: 1.1rem;
+        padding: 2.5rem 1.5rem; background: var(--gd-empty); color: var(--gd-muted); }
+      .gd-empty strong { display: block; color: var(--gd-text); font-size: 1.25rem;
         margin-bottom: .35rem; }
       @media (max-width: 700px) { .gd-hero { padding: 1.8rem 1.5rem; }
         .gd-hero::after { opacity: .4; } }
@@ -123,6 +131,7 @@ def main() -> None:
             st.markdown("#### What you can explore")
             st.write("Search a fictional document library, upload one of your own text-based files, and inspect exact citations.")
             st.caption("The demo accounts show how document permissions change search results.")
+            st.caption("Appearance: open the ⋮ menu at the top right and choose Theme → Light, Dark, or System.")
         with right:
             with st.container(border=True):
                 st.markdown('<div class="gd-section-label">Workspace access</div>', unsafe_allow_html=True)
@@ -204,6 +213,8 @@ def main() -> None:
             st.caption("Optional: sends your question and up to 15 short permitted excerpts to OpenRouter. Use only suitable documents.")
         else:
             st.caption("Add OPENROUTER_API_KEY to the local .env file to enable this option.")
+        st.divider()
+        st.caption("Appearance · ⋮ menu (top right) → Theme → Light / Dark / System")
 
     _hero()
     scope_label = {"Sample library": "Sample library", "Uploaded document only": "Your upload",

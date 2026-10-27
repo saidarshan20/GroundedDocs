@@ -4,7 +4,7 @@ from pathlib import Path
 import pytest
 
 from grounded_docs.answer import answer_question
-from grounded_docs.uploads import MAX_UPLOAD_BYTES, create_upload_chunks, pdf_blocks
+from grounded_docs.uploads import MAX_UPLOAD_BYTES, MAX_UPLOAD_CHUNKS, create_upload_chunks, pdf_blocks
 
 ROOT = Path(__file__).resolve().parents[1]
 CONFIG = json.loads((ROOT / "config.json").read_text(encoding="utf-8"))
@@ -53,6 +53,19 @@ def test_uploaded_exact_heading_wins_near_reranker_tie():
         result("List all running containers\ndocker ps", 6.46),
     ]
     assert answer_question(question, results)["answer"] == "List all running containers\ndocker ps"
+
+
+@pytest.mark.parametrize("count,accepted", [(MAX_UPLOAD_CHUNKS, True), (MAX_UPLOAD_CHUNKS + 1, False)])
+def test_upload_passage_cap_boundary(monkeypatch, count, accepted):
+    def sections(_name, _data):
+        return ((f"page-{number}", number, f"Evidence {number}") for number in range(1, count + 1))
+
+    monkeypatch.setattr("grounded_docs.uploads.uploaded_sections", sections)
+    if accepted:
+        assert len(create_upload_chunks("test.pdf", b"synthetic", "guest", CONFIG)) == MAX_UPLOAD_CHUNKS
+    else:
+        with pytest.raises(ValueError, match=f"more than {MAX_UPLOAD_CHUNKS} searchable passages"):
+            create_upload_chunks("test.pdf", b"synthetic", "guest", CONFIG)
 
 
 @pytest.mark.parametrize("name,data", [

@@ -80,7 +80,7 @@ def main() -> None:
         st.session_state.clear()
         st.rerun()
     st.subheader("Your document")
-    st.caption("Upload one text-based PDF, Markdown, or TXT file (up to 5 MB). It stays in this app session's memory, is not saved to disk, and is cleared on logout.")
+    st.caption(f"Upload one text-based PDF, Markdown, or TXT file (up to 5 MB and {uploads_module.MAX_UPLOAD_CHUNKS} searchable passages). It stays in this app session's memory, is not saved to disk, and is cleared on logout.")
     if "upload_widget_version" not in st.session_state:
         st.session_state.upload_widget_version = 0
     with st.form("upload"):

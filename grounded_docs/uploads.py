@@ -12,7 +12,7 @@ from typing import Iterator
 from grounded_docs.ingest import USERS, chunk_text, normalize, sha256
 
 MAX_UPLOAD_BYTES = 5 * 1024 * 1024
-MAX_UPLOAD_CHUNKS = 120
+MAX_UPLOAD_CHUNKS = 256
 ALLOWED_SUFFIXES = frozenset({".pdf", ".md", ".txt"})
 
 
@@ -95,7 +95,7 @@ def create_upload_chunks(name: str, data: bytes, principal: str, config: dict) -
                     chunk_text(text, config["chunk_words"], config["chunk_overlap_words"]))
         for ordinal, passage in enumerate(passages, 1):
             if len(chunks) >= MAX_UPLOAD_CHUNKS:
-                raise ValueError("The document is too long for this demo (120 chunks maximum).")
+                raise ValueError(f"The document creates more than {MAX_UPLOAD_CHUNKS} searchable passages; try a shorter file.")
             chunks.append({
                 "chunk_id": f"{doc_id}:{section}:{ordinal:03d}",
                 "doc_id": doc_id,

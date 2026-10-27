@@ -2,7 +2,7 @@
 
 GroundedDocs answers questions from a small document library or a document you upload for the current session, and shows the exact evidence it used. It compares BM25 keyword search, dense vector search, rank-fused hybrid search, and cross-encoder reranking. Each signed-in demo account can retrieve only its permitted bundled documents; uploads are isolated to the current app session.
 
-**Status:** locally built, benchmarked, and [published on GitHub](https://github.com/saidarshan20/GroundedDocs). Streamlit deployment is intentionally deferred while the project owner tests and studies the code. A live URL and screenshots can be added later. The [build guide](GroundedDocs.md) explains the full design; [PROGRESS.md](PROGRESS.md) records the current handoff point.
+**Status:** locally built, benchmarked, and [published on GitHub](https://github.com/saidarshan20/GroundedDocs). Streamlit deployment is intentionally deferred while the project owner tests and studies the code. A live URL and screenshots can be added later. Start with the [beginner-to-advanced walkthrough](WALKTHROUGH.md) to understand the working code; the [build guide](GroundedDocs.md) explains the original design, and [PROGRESS.md](PROGRESS.md) records the current handoff point.
 
 ## Try it locally
 
@@ -57,8 +57,8 @@ flowchart LR
     R --> E[Extract sentence or abstain]
     E --> C[Answer and exact citation]
     E -->|Optional, with consent| O[OpenRouter selects excerpt IDs]
-    O --> V[Display original excerpts and citations]
-    V --> C
+    O --> VO[Display original excerpts and citations]
+    VO --> C
 ```
 
 The committed index holds 59 passages from 30 original fictional documents: 12 shared, 9 Alice-only, and 9 Bob-only. Access grants are in `corpus/manifest.jsonl`; search filters by principal before scoring or displaying any result. An uploaded document is chunked and embedded with the same pinned model, then kept only in that browser session's app memory. Displayed answer text is copied from a source passage, even when OpenRouter chooses which quotes to show. A development-only reranker threshold controls abstention. Rebuild the committed index after any bundled corpus, grant, chunking, or embedding-model change.

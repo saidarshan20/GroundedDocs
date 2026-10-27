@@ -19,6 +19,10 @@ def test_guest_can_login_get_pdf_citation_and_logout():
     assert not app.exception
     assert any("Guests may print up to ten" in item.value for item in app.markdown)
     assert any("page 1" in item.value and "pub12:page-1:001" in item.value for item in app.caption)
+    app.run()
+    assert any("Guests may print up to ten" in item.value for item in app.markdown)
+    next(box for box in app.selectbox if box.label == "Retrieval mode").set_value("bm25").run()
+    assert not any("Guests may print up to ten" in item.value for item in app.markdown)
     next(button for button in app.button if button.label == "Log out").click().run()
     assert not app.exception
     assert app.text_input[0].label == "Password"

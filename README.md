@@ -2,6 +2,8 @@
 
 GroundedDocs answers questions from a small document library or a document you upload for the current session, and shows the exact evidence it used. It compares BM25 keyword search, dense vector search, rank-fused hybrid search, and cross-encoder reranking. Each signed-in demo account can retrieve only its permitted bundled documents; uploads are isolated to the current app session.
 
+The Streamlit workspace keeps account, document upload, search scope, retrieval mode, and optional OpenRouter controls in a sidebar. The main area puts the question, answer, and inspectable source side by side. Its light theme is in `.streamlit/config.toml`. A result remains visible across ordinary Streamlit reruns and clears when the source, account, mode, or answer style changes.
+
 **Status:** locally built, benchmarked, and [published on GitHub](https://github.com/saidarshan20/GroundedDocs). Streamlit deployment is intentionally deferred while the project owner tests and studies the code. A live URL and screenshots can be added later. The [build guide](GroundedDocs.md) explains the original design, and [PROGRESS.md](PROGRESS.md) records the current handoff point.
 
 ## Try it locally
